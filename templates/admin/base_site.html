@@ -1,0 +1,20 @@
+{% extends "admin/base.html" %}
+{% load i18n %}
+
+{% block title %}{% if subtitle %}{{ subtitle }} | {% endif %}{{ title }} | {{ site_title|default:_('Django site admin') }}{% endblock %}
+
+{% block branding %}
+<div id="site-name">
+    <a href="{% url 'admin:index' %}" style="font-size: 1.2rem; font-weight: 700; background: linear-gradient(135deg, #be4bdb, #d978f5); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">
+        ✦ LLL-D-blog
+    </a>
+</div>
+{% endblock %}
+
+{% block nav-global %}{% endblock %}
+
+{% block footer %}
+<div id="footer" style="text-align: center; padding: 10px; color: #999; font-size: 12px;">
+    <a href="/" style="color: #be4bdb; text-decoration: none;">&larr; 返回博客首页</a>
+</div>
+{% endblock %}

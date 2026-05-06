@@ -1,0 +1,107 @@
+{% extends 'share_layout/base.html' %}
+{% load blog_tags %}
+{% load i18n %}
+{% load static %}
+
+{% block header %}
+    <title>{{ SITE_NAME }} - {{ SITE_DESCRIPTION }}</title>
+    <meta name="description" content="{{ SITE_SEO_DESCRIPTION }}"/>
+    <meta name="keywords" content="{{ SITE_KEYWORDS }}"/>
+{% endblock %}
+
+{% block content %}
+    <div class="mx-auto max-w-6xl px-4 py-4 lg:px-6 lg:py-6">
+        {# Main Grid #}
+        <div class="grid gap-6 lg:grid-cols-[1fr_300px]">
+            {# Main Content #}
+            <main>
+                {# ===== Hero Section (only on homepage) ===== #}
+                {% if not page_type %}
+                <div class="relative mb-8 overflow-hidden rounded-2xl bg-gradient-to-br from-primary-500/15 via-purple-400/5 to-pink-400/10 p-8 md:p-10 shadow-sm">
+                    {# Decorative blobs #}
+                    <div class="pointer-events-none absolute -right-10 -top-10 size-48 rounded-full bg-primary-500/15 blur-3xl float-glow"></div>
+                    <div class="pointer-events-none absolute -bottom-10 -left-10 size-36 rounded-full bg-pink-400/10 blur-3xl float-glow" style="animation-delay: 2s;"></div>
+                    <div class="pointer-events-none absolute right-1/4 top-1/3 size-20 rounded-full bg-primary-300/10 blur-2xl float-glow" style="animation-delay: 1s;"></div>
+
+                    {# Sparkle decorations #}
+                    <div class="sparkle" style="top: 15%; right: 20%; animation-delay: 0.5s;"></div>
+                    <div class="sparkle" style="top: 25%; right: 40%; animation-delay: 1.2s; width: 6px; height: 6px;"></div>
+                    <div class="sparkle" style="bottom: 30%; right: 15%; animation-delay: 0.8s; width: 5px; height: 5px;"></div>
+                    <div class="sparkle" style="top: 40%; left: 10%; animation-delay: 1.8s;"></div>
+
+                    <div class="relative">
+                        <h1 class="mb-3 text-3xl font-bold tracking-tight md:text-4xl">
+                            欢迎来到 <span class="text-anime-gradient">{{ SITE_NAME }}</span>
+                        </h1>
+                        <p class="mb-6 max-w-2xl text-base leading-relaxed text-muted-foreground">
+                            {{ SITE_DESCRIPTION }} — 用代码记录成长，以技术分享快乐 ✨
+                        </p>
+                        <div class="flex flex-wrap gap-3">
+                            <a href="/"
+                               class="inline-flex items-center gap-2 rounded-lg bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground shadow-lg shadow-primary/20 transition-all hover:bg-primary/90 hover:shadow-xl hover:shadow-primary/30 hover:-translate-y-0.5">
+                                <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                                </svg>
+                                浏览全部文章
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+
+                {# Title Section for filtered views #}
+                <div class="mb-6">
+                    {% if page_type == "分类目录归档" %}
+                        <div class="mb-2 flex items-center gap-2">
+                            <span class="rounded-md bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">分类</span>
+                        </div>
+                        <h2 class="flex items-center gap-2 text-xl font-bold text-foreground m-0">
+                            <span class="h-5 w-1 shrink-0 rounded-full bg-primary"></span>
+                            {{ tag_name }}
+                        </h2>
+                    {% elif page_type == "分类标签归档" %}
+                        <div class="mb-2 flex items-center gap-2">
+                            <span class="rounded-md bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">标签</span>
+                        </div>
+                        <h2 class="flex items-center gap-2 text-xl font-bold text-foreground m-0">
+                            <span class="h-5 w-1 shrink-0 rounded-full bg-primary"></span>
+                            {{ tag_name }}
+                        </h2>
+                    {% elif page_type == "作者文章归档" %}
+                        <div class="mb-2 flex items-center gap-2">
+                            <span class="rounded-md bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">作者</span>
+                        </div>
+                        <h2 class="flex items-center gap-2 text-xl font-bold text-foreground m-0">
+                            <span class="h-5 w-1 shrink-0 rounded-full bg-primary"></span>
+                            {{ tag_name }}
+                        </h2>
+                    {% endif %}
+                </div>
+
+                {# Article List #}
+                <div class="flex flex-col gap-5">
+                    {% for article in article_list %}
+                        {% load_article_detail article True user %}
+                    {% endfor %}
+                </div>
+
+                {# Pagination #}
+                {% if is_paginated %}
+                    {% load_pagination_info page_obj page_type tag_name %}
+                {% endif %}
+            </main>
+
+            {# Sidebar - Desktop: fixed right column #}
+            <div class="hidden lg:block">
+                <div class="sticky top-20">
+                    {% load_sidebar user "p" %}
+                </div>
+            </div>
+        </div>
+
+        {# Mobile Sidebar - shown below content on small screens #}
+        <div class="mt-8 lg:hidden">
+            {% load_sidebar user "p" %}
+        </div>
+    </div>
+{% endblock %}

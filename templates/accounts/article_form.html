@@ -1,0 +1,237 @@
+{% extends 'share_layout/base.html' %}
+{% load i18n %}
+
+{% block content %}
+<div class="max-w-5xl mx-auto px-4 py-8">
+    <div class="flex items-center gap-3 mb-6">
+        <a href="{% url 'account:profile' %}" class="rounded-lg p-2 text-muted-foreground hover:bg-secondary transition-colors">
+            <svg class="size-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
+            </svg>
+        </a>
+        <h1 class="text-2xl font-bold text-foreground">
+            {% if editing %}编辑文章{% else %}写文章{% endif %}
+        </h1>
+    </div>
+
+    <form method="post" enctype="multipart/form-data" class="space-y-5">
+        {% csrf_token %}
+
+        <div>
+            <label class="block text-sm font-medium text-foreground mb-1.5">标题</label>
+            <input type="text" name="title" value="{{ form.title.value|default:'' }}"
+                   placeholder="输入文章标题"
+                   class="w-full rounded-xl border border-border bg-card px-4 py-3 text-base text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50">
+            {{ form.title.errors }}
+        </div>
+
+        {# 正文 + 实时预览 #}
+        <div>
+            <div class="flex items-center justify-between mb-1.5">
+                <label class="text-sm font-medium text-foreground">正文 (Markdown)</label>
+                <span class="text-xs text-muted-foreground" id="word-count">0 字</span>
+            </div>
+            <div class="flex rounded-xl border border-border overflow-hidden" style="min-height: 500px;">
+                <textarea name="body" id="md-editor"
+                          oninput="updatePreview(this)"
+                          placeholder="支持 Markdown 语法"
+                          class="w-1/2 border-0 border-r border-border bg-card px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none font-mono leading-relaxed resize-none">{{ form.body.value|default:'' }}</textarea>
+                <div id="md-preview"
+                     class="w-1/2 bg-card px-4 py-3 text-sm text-foreground leading-relaxed overflow-y-auto">
+                    {% if form.body.value %}
+                    {{ form.body.value|linebreaks }}
+                    {% else %}
+                    <span class="text-muted-foreground">预览区域</span>
+                    {% endif %}
+                </div>
+            </div>
+            {{ form.body.errors }}
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div>
+                <label class="block text-sm font-medium text-foreground mb-1.5">分类</label>
+                <select name="category"
+                        class="w-full rounded-xl border border-border bg-card px-4 py-2.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50">
+                    <option value="">选择分类</option>
+                    {% for cat in categories %}
+                        <option value="{{ cat.pk }}" {% if form.category.value|stringformat:"s" == cat.pk|stringformat:"s" %}selected{% endif %}>
+                            {{ cat.name }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-foreground mb-1.5">状态</label>
+                <select name="status"
+                        class="w-full rounded-xl border border-border bg-card px-4 py-2.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50">
+                    <option value="d" {% if form.status.value == 'd' %}selected{% endif %}>草稿</option>
+                    <option value="p" {% if form.status.value == 'p' %}selected{% endif %}>发布</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-foreground mb-1.5">评论</label>
+                <select name="comment_status"
+                        class="w-full rounded-xl border border-border bg-card px-4 py-2.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50">
+                    <option value="o" {% if form.comment_status.value == 'o' or not form.comment_status.value %}selected{% endif %}>允许评论</option>
+                    <option value="c" {% if form.comment_status.value == 'c' %}selected{% endif %}>关闭评论</option>
+                </select>
+            </div>
+        </div>
+
+        <div>
+            <label class="block text-sm font-medium text-foreground mb-1.5">标签</label>
+            <div class="flex flex-wrap gap-2 p-3 rounded-xl border border-border bg-card">
+                {% for tag in all_tags %}
+                    <label class="inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm cursor-pointer transition-colors
+                        {% if tag.pk in selected_tags %}
+                        border-primary bg-primary/10 text-primary
+                        {% else %}
+                        border-border text-foreground hover:border-primary/30 hover:bg-primary/5
+                        {% endif %}">
+                        <input type="checkbox" name="tags" value="{{ tag.pk }}"
+                               {% if tag.pk in selected_tags %}checked{% endif %}
+                               class="size-3.5 rounded border-border text-primary focus:ring-primary/20"
+                               onchange="this.parentElement.className = this.parentElement.className.replace(/border-primary bg-primary\/10 text-primary|border-border text-foreground/g,'') + (this.checked ? ' inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm cursor-pointer transition-colors border-primary bg-primary/10 text-primary' : ' inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm cursor-pointer transition-colors border-border text-foreground hover:border-primary/30 hover:bg-primary/5')">
+                        {{ tag.name }}
+                    </label>
+                {% endfor %}
+            </div>
+        </div>
+
+        <div class="flex items-center">
+            <label class="flex items-center gap-2 cursor-pointer">
+                <input type="checkbox" name="show_toc" value="on"
+                       {% if form.show_toc.value %}checked{% endif %}
+                       class="size-4 rounded border-border text-primary focus:ring-primary/20">
+                <span class="text-sm text-foreground">显示目录</span>
+            </label>
+        </div>
+
+        {# 附件上传 #}
+        <div class="rounded-xl border border-dashed border-border bg-card/50 p-5">
+            <label class="block text-sm font-medium text-foreground mb-2">附件</label>
+            <div class="flex items-center gap-3">
+                <label class="inline-flex items-center gap-1.5 rounded-lg border border-border px-4 py-2 text-sm text-foreground hover:bg-secondary cursor-pointer transition-colors" id="upload-btn">
+                    <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"/>
+                    </svg>
+                    <span id="upload-btn-text">选择文件</span>
+                    <input type="file" name="attachment_file" class="hidden" id="file-input">
+                </label>
+                <span class="text-xs text-muted-foreground" id="file-name-display"></span>
+            </div>
+            <div id="attachment-list" class="mt-3 space-y-1">
+                {% if object %}
+                {% for att in object.attachments.all %}
+                <div class="flex items-center justify-between rounded-lg bg-background px-3 py-2 text-sm">
+                    <span class="text-foreground">{{ att.filename }}</span>
+                    <span class="text-xs text-muted-foreground">{{ att.size_display }}</span>
+                </div>
+                {% endfor %}
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="flex items-center gap-3 pt-2">
+            <button type="submit"
+                    class="rounded-xl bg-primary-500 px-6 py-2.5 text-sm font-medium text-white hover:bg-primary-600 transition-colors shadow-sm">
+                {% if editing %}保存修改{% else %}发布文章{% endif %}
+            </button>
+            <a href="{% url 'account:profile' %}"
+               class="rounded-xl px-6 py-2.5 text-sm font-medium text-foreground hover:bg-secondary transition-colors">
+                取消
+            </a>
+        </div>
+    </form>
+</div>
+
+<script>
+// 显示选中的文件名
+document.getElementById('file-input')?.addEventListener('change', function() {
+    const display = document.getElementById('file-name-display');
+    const btnText = document.getElementById('upload-btn-text');
+    if (this.files && this.files[0]) {
+        display.textContent = this.files[0].name;
+        btnText.textContent = '重新选择';
+    } else {
+        display.textContent = '';
+        btnText.textContent = '选择文件';
+    }
+});
+
+function updatePreview(textarea) {
+    const preview = document.getElementById('md-preview');
+    const wordCount = document.getElementById('word-count');
+    const text = textarea.value;
+
+    wordCount.textContent = text.replace(/\s/g, '').length + ' 字';
+
+    // 简单 Markdown 渲染
+    let html = text
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        // 标题
+        .replace(/^### (.+)$/gm, '<h3>$1</h3>')
+        .replace(/^## (.+)$/gm, '<h2>$1</h2>')
+        .replace(/^# (.+)$/gm, '<h1>$1</h1>')
+        // 粗体
+        .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+        // 斜体
+        .replace(/\*(.+?)\*/g, '<em>$1</em>')
+        // 行内代码
+        .replace(/`(.+?)`/g, '<code class="px-1 py-0.5 bg-gray-100 dark:bg-gray-800 rounded text-xs">$1</code>')
+        // 图片
+        .replace(/!\[(.+?)\]\((.+?)\)/g, '<img src="$2" alt="$1" class="max-w-full rounded-lg my-2">')
+        // 链接
+        .replace(/\[(.+?)\]\((.+?)\)/g, '<a href="$2" class="text-primary hover:underline">$1</a>')
+        // 列表
+        .replace(/^- (.+)$/gm, '<li class="list-disc ml-4">$1</li>')
+        // 代码块 (``` ... ```)
+        .replace(/```(\w*)\n([\s\S]*?)```/g, '<pre class="bg-gray-100 dark:bg-gray-800 rounded-lg p-3 my-2 overflow-x-auto"><code class="text-xs">$2</code></pre>')
+        // 空行分段
+        .replace(/\n\n/g, '</p><p class="mb-3">')
+        // 引用
+        .replace(/^> (.+)$/gm, '<blockquote class="border-l-4 border-primary/30 pl-3 my-2 text-muted-foreground">$1</blockquote>');
+
+    html = '<p class="mb-3">' + html + '</p>';
+    preview.innerHTML = html;
+
+    if (!text.trim()) {
+        preview.innerHTML = '<span class="text-muted-foreground">预览区域</span>';
+    }
+}
+
+// 初始渲染
+const editor = document.getElementById('md-editor');
+if (editor) {
+    updatePreview(editor);
+}
+</script>
+
+<style>
+#md-preview h1, #md-preview h2, #md-preview h3 {
+    margin-top: 1em;
+    margin-bottom: 0.5em;
+    font-weight: 600;
+    color: inherit;
+}
+#md-preview h1 { font-size: 1.25rem; }
+#md-preview h2 { font-size: 1.1rem; }
+#md-preview h3 { font-size: 1rem; }
+#md-preview p { margin-bottom: 0.75rem; line-height: 1.7; }
+#md-preview code {
+    font-size: 0.8em;
+    padding: 0.15em 0.4em;
+    background: rgb(var(--muted));
+    border-radius: 0.25rem;
+}
+#md-preview pre code {
+    background: transparent;
+    padding: 0;
+}
+</style>
+{% endblock %}
+
+{% block sidebar %}{% endblock %}

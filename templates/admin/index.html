@@ -1,0 +1,48 @@
+{% extends "admin/index.html" %}
+{% load i18n static %}
+
+{% block content %}
+<div id="content-main" style="max-width: 1200px; margin: 0 auto;">
+    {% if app_list %}
+        {% for app in app_list %}
+            <div class="module" style="margin-bottom: 24px; background: var(--card-bg, #fff); border-radius: 12px; border: 1px solid var(--border-color, #e5e7eb); overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+                <div style="padding: 14px 20px; border-bottom: 1px solid var(--border-color, #e5e7eb); background: #f9fafb;">
+                    <h2 style="margin: 0; font-size: 14px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #374151;">
+                        {% if app.app_label == 'Blog' %}📝 内容管理
+                        {% elif app.app_label == 'Comments' %}💬 评论管理
+                        {% elif app.app_label == 'Accounts' %}👤 用户管理
+                        {% elif app.app_label == 'Oauth' %}🔑 登录配置
+                        {% elif app.app_label == 'Servermanager' %}⚙️ 系统管理
+                        {% else %}{{ app.name }}
+                        {% endif %}
+                    </h2>
+                </div>
+                <div style="padding: 8px; display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 4px;">
+                    {% for model in app.models %}
+                        <div style="padding: 0;">
+                            {% if model.admin_url %}
+                                <a href="{{ model.admin_url }}" style="display: flex; align-items: center; gap: 10px; padding: 10px 14px; border-radius: 8px; text-decoration: none; color: #374151; font-size: 13px; transition: all 0.15s;" onmouseover="this.style.background='#f3f4f6'" onmouseout="this.style.background='transparent'">
+                                    <span style="width: 6px; height: 6px; border-radius: 50%; background: {% if model.name == 'Articles' or model.name == '文章' %}#be4bdb{% elif model.name == 'Comments' or model.name == '评论' %}#3b82f6{% else %}#9ca3af{% endif %}; flex-shrink: 0;"></span>
+                                    <span style="flex: 1;">{{ model.name }}</span>
+                                    {% if model.add_url %}
+                                        <a href="{{ model.add_url }}" style="font-size: 11px; color: #be4bdb; text-decoration: none; padding: 2px 8px; border-radius: 4px; border: 1px solid #e5e7eb;" onmouseover="this.style.background='#f5f3ff'" onmouseout="this.style.background='transparent'">＋ 新增</a>
+                                    {% endif %}
+                                </a>
+                            {% else %}
+                                <div style="display: flex; align-items: center; gap: 10px; padding: 10px 14px; color: #9ca3af; font-size: 13px;">
+                                    <span style="width: 6px; height: 6px; border-radius: 50%; background: #d1d5db; flex-shrink: 0;"></span>
+                                    {{ model.name }}
+                                </div>
+                            {% endif %}
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+        {% endfor %}
+    {% else %}
+        <p>{% trans 'You don\'t have permission to view or edit anything.' %}</p>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block sidebar %}{% endblock %}

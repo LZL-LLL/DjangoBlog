@@ -1,0 +1,31 @@
+{% extends 'share_layout/base.html' %}
+{% load i18n %}
+
+{% block content %}
+<div class="max-w-xl mx-auto px-4 py-16">
+    <div class="rounded-xl border border-border bg-card p-8 shadow-sm text-center">
+        <div class="inline-flex items-center justify-center size-16 rounded-full bg-red-100 dark:bg-red-950/30 mb-4">
+            <svg class="size-8 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+            </svg>
+        </div>
+        <h2 class="text-xl font-bold text-foreground mb-2">确认删除</h2>
+        <p class="text-muted-foreground mb-6">
+            确定要删除文章「{{ object.title }}」吗？此操作不可撤销。
+        </p>
+        <form method="post" class="flex items-center justify-center gap-3">
+            {% csrf_token %}
+            <button type="submit"
+                    class="rounded-xl bg-red-500 px-6 py-2.5 text-sm font-medium text-white hover:bg-red-600 transition-colors">
+                确认删除
+            </button>
+            <a href="{% url 'account:profile' %}"
+               class="rounded-xl px-6 py-2.5 text-sm font-medium text-foreground hover:bg-secondary transition-colors">
+                取消
+            </a>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block sidebar %}{% endblock %}
