@@ -458,7 +458,9 @@ def download_attachment(request, attachment_id):
     base_url = getattr(settings, 'GITHUB_ATTACHMENT_BASE_URL', '')
     if base_url:
         from urllib.parse import quote
-        redirect_url = f'{base_url.rstrip("/")}/{quote(attachment.filename)}'
+        # 使用实际文件名（file.name 是 upload_to 相对路径）
+        actual_filename = os.path.basename(attachment.file.name)
+        redirect_url = f'{base_url.rstrip("/")}/{quote(actual_filename)}'
         return HttpResponseRedirect(redirect_url)
     return HttpResponse('文件不存在', status=404)
 
