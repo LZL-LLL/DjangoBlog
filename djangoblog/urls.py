@@ -25,9 +25,15 @@ import time
 
 from blog.views import EsSearchView
 from djangoblog.admin_site import admin_site
-from djangoblog.elasticsearch_backend import ElasticSearchModelSearchForm
 from djangoblog.feeds import DjangoBlogFeed
 from djangoblog.sitemap import ArticleSiteMap, CategorySiteMap, StaticViewSitemap, TagSiteMap, UserSiteMap
+
+# 根据是否配置了 Elasticsearch 来选择合适的搜索表单
+from django.conf import settings
+if hasattr(settings, 'ELASTICSEARCH_DSL'):
+    from djangoblog.elasticsearch_backend import ElasticSearchModelSearchForm as SearchForm
+else:
+    from haystack.forms import ModelSearchForm as SearchForm
 
 sitemaps = {
 
@@ -68,7 +74,7 @@ urlpatterns += i18n_patterns(
             name='django.contrib.sitemaps.views.sitemap'),
     re_path(r'^feed/$', DjangoBlogFeed()),
     re_path(r'^rss/$', DjangoBlogFeed()),
-    re_path('^search', search_view_factory(view_class=EsSearchView, form_class=ElasticSearchModelSearchForm),
+    re_path('^search', search_view_factory(view_class=EsSearchView, form_class=SearchForm),
             name='search'),
     re_path(r'', include('servermanager.urls', namespace='servermanager'))
     , prefix_default_language=False) + static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
