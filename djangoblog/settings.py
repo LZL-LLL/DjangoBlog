@@ -310,8 +310,7 @@ STATICFILES_DIRS = [
     os.path.join(BASE_DIR, 'plugins'),  # 让Django能找到插件的静态文件
 ]
 
-# 媒体文件配置 - 附件、头像、背景图存储
-MEDIA_ROOT = 'D:/LLLblog'
+# 媒体文件配置 - 附件、头像、背景图存储（会被下方覆盖）
 MEDIA_URL = '/media/'
 
 # Vite开发服务器URL（开发模式）
