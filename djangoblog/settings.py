@@ -499,6 +499,13 @@ X_FRAME_OPTIONS = 'SAMEORIGIN'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
+# GitHub 附件下载基础 URL（当本地文件不存在时使用）
+# 将大附件上传到 GitHub Releases，附件通过 filename 匹配
+GITHUB_ATTACHMENT_BASE_URL = os.environ.get(
+    'GITHUB_ATTACHMENT_BASE_URL',
+    'https://github.com/LZL-LLL/DjangoBlog/releases/download/attachments/'
+)
+
 # Plugin System
 PLUGINS_DIR = BASE_DIR / 'plugins'
 ACTIVE_PLUGINS = [

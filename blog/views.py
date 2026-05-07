@@ -440,20 +440,27 @@ def clean_cache_view(request):
 
 
 def download_attachment(request, attachment_id):
-    """下载文章附件（流式传输）"""
+    """下载文章附件（优先本地，不存在时重定向到 GitHub Release）"""
     from blog.models import ArticleAttachment
-    from django.http import FileResponse
+    from django.http import FileResponse, HttpResponseRedirect
     attachment = get_object_or_404(ArticleAttachment, pk=attachment_id)
     if not attachment.file:
         return HttpResponse('文件不存在', status=404)
     import os.path
     file_path = attachment.file.path
-    if not os.path.exists(file_path):
-        return HttpResponse('文件不存在', status=404)
-    response = FileResponse(open(file_path, 'rb'), content_type='application/octet-stream')
-    response['Content-Disposition'] = f'attachment; filename="{attachment.filename}"'
-    response['Content-Length'] = attachment.file_size or os.path.getsize(file_path)
-    return response
+    if os.path.exists(file_path):
+        response = FileResponse(open(file_path, 'rb'), content_type='application/octet-stream')
+        response['Content-Disposition'] = f'attachment; filename="{attachment.filename}"'
+        response['Content-Length'] = attachment.file_size or os.path.getsize(file_path)
+        return response
+    # 本地文件不存在时，重定向到 GitHub Release（适用于 PythonAnywhere）
+    from django.conf import settings
+    base_url = getattr(settings, 'GITHUB_ATTACHMENT_BASE_URL', '')
+    if base_url:
+        from urllib.parse import quote
+        redirect_url = f'{base_url.rstrip("/")}/{quote(attachment.filename)}'
+        return HttpResponseRedirect(redirect_url)
+    return HttpResponse('文件不存在', status=404)
 
 
 def daily_wallpaper(request):
