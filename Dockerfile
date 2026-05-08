@@ -1,58 +1,66 @@
-# Stage 1: Build frontend assets
+# Stage 1: 构建前端资源
 FROM node:20-alpine AS frontend-builder
 
 WORKDIR /app
 
-# Copy frontend package files
+# 复制前端依赖文件
 COPY frontend/package*.json ./frontend/
 
-# Set npm registry to official registry and install dependencies (including devDependencies for build)
+# 安装依赖
 RUN cd frontend && \
     npm config set registry https://registry.npmjs.org/ && \
-    npm ci
+    npm ci --only=production
 
-# Copy frontend source files
+# 复制前端源码
 COPY frontend/ ./frontend/
 
-# Copy templates for Tailwind CSS content scanning
+# 复制模板文件供 Tailwind 扫描
 COPY templates/ ./templates/
 
-# Build frontend assets (output goes to ../blog/static/blog/dist)
-# Vite will create the output directory structure automatically
+# 构建前端（输出到 blog/static/blog/dist）
 RUN cd frontend && npm run build
 
-# Stage 2: Build final image
-FROM python:3.11
+# 验证构建产物
+RUN ls -la /app/blog/static/blog/dist/ && \
+    find /app/blog/static/blog/dist -type f | head -10
 
-ENV PYTHONUNBUFFERED=1
+# Stage 2: 最终镜像
+FROM python:3.11-slim  # 使用 slim 版本减小镜像体积
+
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1
+
 WORKDIR /code/djangoblog/
 
-# Install system dependencies
+# 安装系统依赖
 RUN apt-get update && \
-    apt-get install default-libmysqlclient-dev gettext -y && \
-    rm -rf /var/lib/apt/lists/*
+    apt-get install -y --no-install-recommends \
+        default-libmysqlclient-dev \
+        gettext \
+        gcc \
+    && rm -rf /var/lib/apt/lists/*
 
-# Copy and install Python dependencies
-COPY requirements.txt requirements.txt
-RUN pip install --upgrade pip && \
-    pip install --no-cache-dir -r requirements.txt && \
-    pip install --no-cache-dir gunicorn[gevent] && \
-    pip cache purge
+# 复制并安装 Python 依赖
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt && \
+    pip install --no-cache-dir gunicorn[gevent]
 
-# Copy application code (excluding old build artifacts)
+# 复制应用代码
 COPY . .
 
-# Remove any old build artifacts that might have been copied
-RUN rm -rf /code/djangoblog/blog/static/blog/dist
+# 删除可能存在的旧构建产物
+RUN rm -rf blog/static/blog/dist
 
-# Copy built frontend assets from frontend-builder stage
+# 从前端构建阶段复制构建好的资源
 COPY --from=frontend-builder /app/blog/static/blog/dist /code/djangoblog/blog/static/blog/dist
 
-# Verify the frontend assets were copied correctly
-RUN ls -la /code/djangoblog/blog/static/blog/dist/css/ && \
-    cat /code/djangoblog/blog/static/blog/dist/.vite/manifest.json
+# 验证前端资源
+RUN if [ ! -d "blog/static/blog/dist/css" ]; then \
+        echo "ERROR: Frontend assets missing!" && exit 1; \
+    fi && \
+    echo "Frontend assets verified: $(ls blog/static/blog/dist/ | tr '\n' ' ')"
 
-# Set execute permission for entrypoint
-RUN chmod +x /code/djangoblog/deploy/entrypoint.sh
+# 确保 entrypoint 可执行
+RUN chmod +x deploy/entrypoint.sh
 
 ENTRYPOINT ["/code/djangoblog/deploy/entrypoint.sh"]
