@@ -495,6 +495,26 @@ MEDIA_ROOT = os.path.join(BASE_DIR, 'uploads')
 MEDIA_URL = '/media/'
 X_FRAME_OPTIONS = 'SAMEORIGIN'
 
+# AI 小助手配置
+# 当前使用: 阿里云百炼平台 qwen-turbo 免费模型
+# 文档: https://help.aliyun.com/zh/model-studio/
+#
+# 其他免费选项:
+# - 硅基流动: https://api.siliconflow.cn/v1/chat/completions  模型: Qwen/Qwen2.5-7B-Instruct
+# - DeepSeek:  https://api.deepseek.com/v1/chat/completions    模型: deepseek-chat
+# - 智谱:      https://open.bigmodel.cn/api/paas/v4/chat/completions  模型: glm-4-flash
+#
+# ⚠️ 注意: API Key 不要提交到公开仓库！
+AI_ASSISTANT_API_KEY = os.environ.get('AI_ASSISTANT_API_KEY', '')
+AI_ASSISTANT_API_URL = os.environ.get('AI_ASSISTANT_API_URL', 'https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions')
+AI_ASSISTANT_MODEL = os.environ.get('AI_ASSISTANT_MODEL', 'qwen-turbo')
+# AI 系统提示词，可自定义角色
+AI_ASSISTANT_SYSTEM_PROMPT = os.environ.get(
+    'AI_ASSISTANT_SYSTEM_PROMPT',
+    '你是一个技术博客的AI助手，帮助博主优化博客内容、回答问题、提供技术建议。'
+    '你热情友好，专业但不枯燥。回复简短精炼，使用中文。'
+)
+
 
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'

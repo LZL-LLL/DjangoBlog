@@ -52,6 +52,10 @@ urlpatterns = [
         views.LinkListView.as_view(),
         name='links'),
     path(
+        'guestbook.html',
+        views.GuestbookView.as_view(),
+        name='guestbook'),
+    path(
         r'upload',
         views.fileupload,
         name='upload'),
@@ -67,4 +71,8 @@ urlpatterns = [
         'daily-wallpaper',
         views.daily_wallpaper,
         name='daily_wallpaper'),
+    path(
+        'ai-chat',
+        views.ai_chat,
+        name='ai_chat'),
 ]

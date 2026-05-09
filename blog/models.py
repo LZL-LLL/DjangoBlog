@@ -98,6 +98,12 @@ class Article(BaseModel):
     article_order = models.IntegerField(
         _('order'), blank=False, null=False, default=0)
     show_toc = models.BooleanField(_('show toc'), blank=False, null=False, default=False)
+    cover_image = models.ImageField(
+        _('cover image'),
+        upload_to='article_covers/',
+        blank=True,
+        null=True,
+        help_text=_('文章封面图，用于列表页翻牌卡片展示（不设置则自动使用正文首图）'))
     category = models.ForeignKey(
         'Category',
         verbose_name=_('category'),
@@ -441,6 +447,23 @@ class BlogSettings(models.Model):
         super().save(*args, **kwargs)
         from djangoblog.utils import cache
         cache.clear()
+
+
+class GuestbookMessage(models.Model):
+    """留言板留言"""
+    nickname = models.CharField('昵称', max_length=50, blank=True, null=False, default='')
+    email = models.EmailField('邮箱', max_length=100, blank=True, null=True)
+    body = models.TextField('内容', max_length=500)
+    creation_time = models.DateTimeField('创建时间', default=now)
+    is_enable = models.BooleanField('是否显示', default=True, blank=False, null=False)
+
+    class Meta:
+        ordering = ['-creation_time']
+        verbose_name = '留言板留言'
+        verbose_name_plural = '留言板留言'
+
+    def __str__(self):
+        return f'{self.nickname or "匿名"}: {self.body[:30]}'
 
 
 class ArticleAttachment(models.Model):

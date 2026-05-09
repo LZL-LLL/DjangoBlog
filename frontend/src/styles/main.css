@@ -2868,6 +2868,68 @@ img[loading="lazy"][src] {
     animation: sakuraFall linear infinite;
 }
 
+/* ==================== 翻牌卡片效果 (Flip Card) ==================== */
+.flip-card-container {
+  perspective: 1200px;
+  height: 320px;
+}
+
+@media (max-width: 640px) {
+  .flip-card-container {
+    height: 280px;
+  }
+}
+
+.flip-card-inner {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+  transform-style: preserve-3d;
+}
+
+.flip-card-container:hover .flip-card-inner {
+  transform: rotateY(180deg);
+}
+
+.flip-card-front,
+.flip-card-back {
+  position: absolute;
+  inset: 0;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  border-radius: 0.75rem;
+  overflow: hidden;
+}
+
+.flip-card-front {
+  z-index: 2;
+}
+
+.flip-card-back {
+  transform: rotateY(180deg);
+  z-index: 1;
+  overflow-y: auto;
+}
+
+/* 修复 iOS Safari 的 3D 变换问题 */
+.flip-card-front img,
+.flip-card-front .absolute {
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+
+/* 无图片时的容器居中 */
+.flip-card-front .no-image + .bg-gradient-to-br {
+  opacity: 1 !important;
+}
+
+/* 当文章列表在非首页（分类/标签/作者页）时，卡片稍小 */
+.category-detail .flip-card-container,
+.tag-detail .flip-card-container {
+  height: 280px;
+}
+
 /* ==================== 文章卡片入场动画 ==================== */
 .article-card-item {
     opacity: 0;

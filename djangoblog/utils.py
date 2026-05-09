@@ -292,13 +292,13 @@ def sanitize_html(html):
     return cleaned
 
 
-WALLPAPER_DIR = 'D:/blogbihzi'
+WALLPAPER_DIR = os.path.join(settings.BASE_DIR, 'wallpaper')
 IMAGE_EXTENSIONS = ('.jpg', '.jpeg', '.png', '.gif', '.webp', '.bmp')
 VIDEO_EXTENSIONS = ('.mp4', '.webm', '.avi', '.mov', '.mkv')
 
 
 def get_daily_wallpaper():
-    """从 D:\\blogbihzi 每天随机选一张壁纸（图片或视频）"""
+    """从 wallpaper/ 目录每天随机选一张壁纸（图片或视频）"""
     if not os.path.exists(WALLPAPER_DIR):
         return None
 

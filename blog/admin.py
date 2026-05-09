@@ -6,7 +6,7 @@ from django.utils.html import format_html
 from django.utils.translation import gettext_lazy as _
 
 # Register your models here.
-from .models import Article, Category, Tag, Links, SideBar, BlogSettings, ArticleAttachment
+from .models import Article, Category, Tag, Links, SideBar, BlogSettings, ArticleAttachment, GuestbookMessage
 
 
 class ArticleForm(forms.ModelForm):
@@ -59,7 +59,13 @@ class ArticlelAdmin(admin.ModelAdmin):
         'views',
         'status',
         'type',
-        'article_order')
+        'article_order',
+        'has_cover')
+
+    def has_cover(self, obj):
+        return bool(obj.cover_image) if obj and obj.cover_image else False
+    has_cover.boolean = True
+    has_cover.short_description = '封面'
     list_display_links = ('id', 'title')
     list_filter = ('status', 'type', 'category')
     date_hierarchy = 'creation_time'
@@ -165,3 +171,16 @@ class BlogSettingsAdmin(admin.ModelAdmin):
         from djangoblog.utils import cache
         cache.clear()
         self.message_user(request, '设置已保存，缓存已清除')
+
+
+@admin.register(GuestbookMessage)
+class GuestbookMessageAdmin(admin.ModelAdmin):
+    list_display = ('nickname', 'body_short', 'creation_time', 'is_enable')
+    list_filter = ('is_enable', 'creation_time')
+    search_fields = ('nickname', 'body', 'email')
+    list_editable = ('is_enable',)
+    date_hierarchy = 'creation_time'
+
+    def body_short(self, obj):
+        return obj.body[:50] + ('...' if len(obj.body) > 50 else '')
+    body_short.short_description = '留言内容'

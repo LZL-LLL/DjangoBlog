@@ -144,6 +144,8 @@ def current_nav_item(request):
         return 'archives'
     elif path.startswith('/links'):
         return 'links'
+    elif path.startswith('/guestbook'):
+        return 'guestbook'
     elif path.startswith('/category/'):
         return 'category'
     elif path.startswith('/tag/'):

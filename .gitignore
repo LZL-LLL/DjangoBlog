@@ -79,7 +79,15 @@ settings_production.py
 werobot_session.db
 bin/datas/
 .claude/
+.env
 nul
+
+# Large wallpaper files (upload directly to server)
+wallpaper/*.mp4
+wallpaper/*.MP4
+wallpaper/*.webm
+wallpaper/*.avi
+wallpaper/*.mov
 deploy/docker-compose/bin/datas
 static/avatar
 img/

@@ -16,7 +16,7 @@ from django.views.generic.detail import DetailView
 from django.views.generic.list import ListView
 from haystack.views import SearchView
 
-from blog.models import Article, Category, LinkShowType, Links, Tag
+from blog.models import Article, Category, GuestbookMessage, LinkShowType, Links, Tag
 from comments.forms import CommentForm
 from djangoblog.plugin_manage import hooks
 from djangoblog.plugin_manage.hook_constants import ARTICLE_CONTENT_HOOK_NAME
@@ -350,6 +350,51 @@ class LinkListView(ListView):
         return Links.objects.filter(is_enable=True)
 
 
+class GuestbookView(ListView):
+    """留言板"""
+    model = GuestbookMessage
+    template_name = 'blog/guestbook.html'
+    context_object_name = 'message_list'
+    paginate_by = 20
+
+    def get_queryset(self):
+        return GuestbookMessage.objects.filter(is_enable=True)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        blog_setting = get_blog_setting()
+        context['seo_title'] = f"留言板 | {blog_setting.site_name}"
+        context['seo_description'] = "欢迎在留言板留下您的宝贵意见"
+        context['seo_keywords'] = f"留言板, {blog_setting.site_keywords}"
+        return context
+
+    def post(self, request, *args, **kwargs):
+        nickname = request.POST.get('nickname', '').strip()
+        email = request.POST.get('email', '').strip()
+        body = request.POST.get('body', '').strip()
+
+        if not body:
+            return render(request, self.template_name, {
+                'message_list': self.get_queryset(),
+                'error': '留言内容不能为空',
+                'nickname': nickname,
+                'email': email,
+            })
+
+        if not nickname:
+            nickname = '匿名'
+
+        GuestbookMessage.objects.create(
+            nickname=nickname,
+            email=email or None,
+            body=body,
+            is_enable=True
+        )
+
+        from django.shortcuts import redirect
+        return redirect('blog:guestbook')
+
+
 class EsSearchView(SearchView):
     def build_form(self, form_kwargs=None):
         """Override to enable highlighting"""
@@ -432,6 +477,167 @@ from djangoblog.error_views import (
     server_error_view,
     permission_denied_view
 )
+
+
+@csrf_exempt
+def ai_chat(request):
+    """AI 小助手聊天接口"""
+    import json
+    from django.http import JsonResponse
+
+    if request.method != 'POST':
+        return JsonResponse({'error': '仅支持POST请求'}, status=405)
+
+    try:
+        data = json.loads(request.body)
+        message = data.get('message', '').strip()
+    except (json.JSONDecodeError, AttributeError):
+        return JsonResponse({'error': '无效的请求数据'}, status=400)
+
+    if not message:
+        return JsonResponse({'error': '消息不能为空'}, status=400)
+
+    if len(message) > 500:
+        return JsonResponse({'error': '消息太长啦，请控制在500字以内'}, status=400)
+
+    ai_response = _get_ai_response(message)
+
+    return JsonResponse({
+        'reply': ai_response,
+        'status': 'ok'
+    })
+
+
+def _get_ai_response(message):
+    """
+    获取 AI 回复
+    优先使用外部 API（如配置），否则使用内置回复
+    """
+    api_key = getattr(settings, 'AI_ASSISTANT_API_KEY', None)
+    api_url = getattr(settings, 'AI_ASSISTANT_API_URL', None)
+
+    if api_key and api_url:
+        try:
+            return _call_external_api(message, api_key, api_url)
+        except Exception as e:
+            logger.warning(f'AI API call failed: {e}, using fallback')
+            return _get_fallback_response(message)
+
+    return _get_fallback_response(message)
+
+
+def _call_external_api(message, api_key, api_url):
+    """调用外部 AI API (兼容 OpenAI 格式)"""
+    import requests
+    headers = {
+        'Authorization': f'Bearer {api_key}',
+        'Content-Type': 'application/json',
+    }
+    system_prompt = getattr(settings, 'AI_ASSISTANT_SYSTEM_PROMPT',
+        '你是一个技术博客的AI助手，帮助博主优化博客内容、回答问题、提供技术建议。'
+        '你热情友好，专业但不枯燥。回复简短精炼，使用中文。')
+
+    payload = {
+        'model': getattr(settings, 'AI_ASSISTANT_MODEL', 'Qwen/Qwen2.5-7B-Instruct'),
+        'messages': [
+            {'role': 'system', 'content': system_prompt},
+            {'role': 'user', 'content': message}
+        ],
+        'max_tokens': 500,
+        'temperature': 0.7,
+        'stream': False,
+    }
+    resp = requests.post(api_url, headers=headers, json=payload, timeout=30)
+    resp.raise_for_status()
+    result = resp.json()
+    # 兼容不同 API 返回格式
+    if 'choices' in result and len(result['choices']) > 0:
+        return result['choices'][0]['message']['content']
+    return str(result)
+
+
+def _get_fallback_response(message):
+    """内置智能回复（当未配置外部 API 时使用）"""
+    import random
+
+    greetings = ['你好', '嗨', 'hello', 'hi', '您好', '你好呀', '在吗', 'hey']
+    thanks = ['谢谢', '感谢', '多谢', 'thx', 'thanks']
+    blog_questions = ['博客', '优化', '建议', '改进', '文章', '内容']
+    tech_questions = ['python', 'django', '教程', '学习', '编程', '代码', '技术', '前端', '后端']
+    about_site = ['网站', '功能', '主题', '部署', 'pythonanywhere', '速度', 'seo']
+
+    msg_lower = message.lower()
+
+    if any(g in msg_lower for g in greetings):
+        return random.choice([
+            '你好呀！我是博客小助手，有什么可以帮你的吗？😊',
+            '嗨！欢迎来找我聊天～有什么想问的或想讨论的吗？',
+            '你好！我正在这里呢，有什么需要帮助的吗？',
+        ])
+
+    if any(t in msg_lower for t in thanks):
+        return random.choice([
+            '不客气！随时找我聊天哦～',
+            '应该的！有什么想法随时告诉我 😊',
+            '别客气，一起让博客变得更好吧！',
+        ])
+
+    if any(b in msg_lower for b in blog_questions):
+        if '优化' in msg_lower or '建议' in msg_lower:
+            return random.choice([
+                '关于博客优化，我有几个建议：\n\n'
+                '1. 📝 **内容为王** - 定期更新高质量的原创内容\n'
+                '2. 🔍 **SEO优化** - 注意文章标题和描述的SEO设置\n'
+                '3. ⚡ **加载速度** - 优化图片大小，使用缓存\n'
+                '4. 📱 **移动端体验** - 确保在手机上阅读舒适\n'
+                '5. 💬 **互动** - 多和读者互动，回复评论\n\n'
+                '你对哪方面比较感兴趣？我可以详细说说！',
+                '想让博客更受欢迎？可以试试：\n\n'
+                '🎯 找准定位，持续输出某个领域的深度内容\n'
+                '📊 分析访问数据，了解读者喜好\n'
+                '🔗 和其他博主交换友链，互推流量\n'
+                '🎨 优化页面设计，提升阅读体验\n\n'
+                '你觉得哪个方向最适合现在的博客？',
+            ])
+
+        return random.choice([
+            '你的博客已经做得很棒了！要继续保持更新频率哦 💪\n'
+            '如果想新增功能或者改进设计，随时告诉我～',
+            '写博客最重要的是坚持！你已经迈出了最重要的一步。'
+            '有什么想要增加的新功能或内容方向吗？我们可以一起规划！',
+        ])
+
+    if any(t in msg_lower for t in tech_questions):
+        return random.choice([
+            '技术学习最重要的是动手实践！遇到具体问题随时问我～\n'
+            '比如 Django 配置、前端样式、部署运维等，我都可以帮你分析。',
+            '在技术选型上，我建议选择社区活跃、文档完善的技术栈。\n'
+            '你现在用的 Django + Tailwind + Alpine.js 就是一个很棒的组合！\n'
+            '有什么具体的技术问题想讨论吗？',
+        ])
+
+    if any(s in msg_lower for s in about_site):
+        return random.choice([
+            '关于网站功能，目前已有的功能包括：\n'
+            '✨ 文章管理（分类/标签/归档）\n'
+            '💬 评论系统（支持 emoji 反应）\n'
+            '🔍 全文搜索\n'
+            '🌙 深色模式\n'
+            '📱 响应式设计\n\n'
+            '你还想添加什么新功能吗？我帮你实现！',
+            '网站目前部署在 PythonAnywhere，速度和稳定性都不错。\n'
+            '如果访问量增长，可以考虑升级套餐或迁移到云服务器。\n'
+            '有什么部署或性能方面的问题吗？',
+        ])
+
+    # Default responses
+    return random.choice([
+        '很有意思的话题！能多说说你的想法吗？我很想听听 😊',
+        '原来你是这么想的呀！让我想想怎么帮你～',
+        '我收到了！可以再具体一点描述你的需求吗？\n这样我能给出更有针对性的建议～',
+        '好问题！让我想想… 你可以先在博客上写一篇文章分享你的观点，\n然后我们可以一起讨论和优化！',
+        '你的想法很棒！作为一个博客助手，我建议可以把这些想法\n整理成文章分享出来，一定会很有价值！',
+    ])
 
 
 def clean_cache_view(request):
