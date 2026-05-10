@@ -4,7 +4,7 @@
 {% load static %}
 
 {# Get the cover image: first try cover_image field, fall back to body first image #}
-{% with first_image=article.cover_image.url|default:article.get_first_image_url %}
+{% with first_image=article.get_cover_image_url %}
 
 <article id="post-{{ article.pk }}" class="article-card-item group flip-card-container overflow-hidden rounded-xl border border-border bg-card shadow-sm transition-all duration-300 hover:shadow-lg hover:border-primary/20">
 

@@ -193,6 +193,15 @@ class Article(BaseModel):
             return match.group(1)
         return ""
 
+    def get_cover_image_url(self):
+        """Safely get cover image URL, falling back to first body image."""
+        if self.cover_image and self.cover_image.name:
+            try:
+                return self.cover_image.url
+            except ValueError:
+                pass
+        return self.get_first_image_url()
+
 
 class Category(BaseModel):
     """文章分类"""
